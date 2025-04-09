@@ -1,0 +1,141 @@
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f7f6;
+  overflow-x: hidden;
+}
+
+/* Container for both dashboard and historical data */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  padding: 10px;
+}
+
+/* Dashboard Styling */
+.dashboard {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 30px;
+}
+
+h1 {
+  font-size: 1.8em;
+  color: #3c9c4b;
+  margin-bottom: 10px;
+}
+
+h2 {
+  font-size: 1.2em;
+  color: #555;
+}
+
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: scale(1.05);
+}
+
+.card h3 {
+  font-size: 1.4em;
+  color: #3c9c4b;
+}
+
+.card p {
+  font-size: 1.1em;
+  color: #555;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal-content h2 {
+  margin-bottom: 20px;
+}
+
+.modal-content p {
+  margin-bottom: 10px;
+}
+
+.modal-content button {
+  padding: 10px 15px;
+  background-color: #3c9c4b;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #2f7f39;
+}
+
+.pump-control {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pump-button {
+  background-color: #3c9c4b;
+  color: white;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.5em;
+  cursor: pointer;
+  margin: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.pump-button:hover {
+  background-color: #2f7f39;
+}
+
