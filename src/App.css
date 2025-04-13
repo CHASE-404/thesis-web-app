@@ -139,3 +139,63 @@ h2 {
   background-color: #2f7f39;
 }
 
+.status-indicator {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.status-indicator.satisfactory {
+  color: #2ecc71;
+}
+
+.status-indicator.tooHigh, .status-indicator.tooLow, .status-indicator.unknown {
+  color: #e74c3c;
+}
+
+/* Add these new styles for value colors and error state */
+.value.satisfactory {
+  color: #2ecc71; /* Green color for satisfactory */
+}
+
+.value.tooHigh, .value.tooLow {
+  color: #e74c3c; /* Red color for too high/low values */
+}
+
+.value.error, .status-indicator.error {
+  color: #f39c12; /* Yellow/orange color for error states */
+}
+
+/* Modal section styling */
+.modal-section {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.modal-section h3 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.optimal-range {
+  font-style: italic;
+  color: #666;
+  margin-top: 5px;
+}
+
+.action {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-left: 3px solid #3c9c4b;
+  border-radius: 4px;
+}
+
+.pump-state {
+  font-size: 24px;
+  font-weight: bold;
+  color: #3c9c4b;
+}
+
+.close-button {
+  margin-top: 15px;
+}
