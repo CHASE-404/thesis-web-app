@@ -14,8 +14,8 @@ function SensorChart({ historicalData }) {
   // Function to format timestamps for hourly views
   const formatTime = (timestamp) => {
     const date = new Date(timestamp * 1000);
-    // Calculate days since start date
-    const startDate = new Date(1743919923 * 1000); // Your start timestamp
+    // Calculate days since start date - April 6, 2025
+    const startDate = new Date('2025-04-06T00:00:00');
     const diffTime = Math.abs(date - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
@@ -25,8 +25,8 @@ function SensorChart({ historicalData }) {
   // Function to format date for daily view
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
-    // Calculate days since start date
-    const startDate = new Date(1743919923 * 1000); // Your start timestamp
+    // Calculate days since start date - April 6, 2025
+    const startDate = new Date('2025-04-06T00:00:00');
     const diffTime = Math.abs(date - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
@@ -35,8 +35,8 @@ function SensorChart({ historicalData }) {
 
   // Function to format week range
   const formatWeekRange = (weekStart, weekEnd) => {
-    // Calculate week number based on start date
-    const startDate = new Date(1743919923 * 1000); // Your start timestamp
+    // Calculate week number based on start date - April 6, 2025
+    const startDate = new Date('2025-04-06T00:00:00');
     const diffTime = Math.abs(weekStart - startDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const weekNumber = Math.floor(diffDays / 7) + 1;
@@ -65,23 +65,21 @@ function SensorChart({ historicalData }) {
       const dailyData = {};
       
       Object.keys(historicalData).forEach(timestamp => {
-        // Process all data from the start timestamp
-        if (parseInt(timestamp) >= 1743919923) {
-          const date = new Date(parseInt(timestamp) * 1000);
-          const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-          
-          if (!dailyData[dayKey]) {
-            dailyData[dayKey] = {
-              timestamp: parseInt(timestamp),
-              values: [],
-              count: 0
-            };
-          }
-          
-          if (historicalData[timestamp][dataType] !== undefined) {
-            dailyData[dayKey].values.push(historicalData[timestamp][dataType]);
-            dailyData[dayKey].count++;
-          }
+        // Process all data - no need to filter by timestamp
+        const date = new Date(parseInt(timestamp) * 1000);
+        const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        if (!dailyData[dayKey]) {
+          dailyData[dayKey] = {
+            timestamp: parseInt(timestamp),
+            values: [],
+            count: 0
+          };
+        }
+        
+        if (historicalData[timestamp][dataType] !== undefined) {
+          dailyData[dayKey].values.push(historicalData[timestamp][dataType]);
+          dailyData[dayKey].count++;
         }
       });
       
@@ -99,38 +97,36 @@ function SensorChart({ historicalData }) {
     else if (timeRange === 'weekly') {
       // Group data by week and calculate weekly averages
       const weeklyData = {};
-      const startDate = new Date(1743919923 * 1000); // Your start timestamp
+      const startDate = new Date('2025-04-06T00:00:00'); // April 6, 2025
       
-      // Process all data from the start timestamp
+      // Process all data
       Object.keys(historicalData).forEach(timestamp => {
-        if (parseInt(timestamp) >= 1743919923) {
-          const date = new Date(parseInt(timestamp) * 1000);
-          
-          // Calculate days since start
-          const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-          // Calculate which week this belongs to (0-indexed)
-          const weekIndex = Math.floor(daysSinceStart / 7);
-          
-          // Calculate the start and end of this week
-          const weekStartDate = new Date(startDate);
-          weekStartDate.setDate(startDate.getDate() + (weekIndex * 7));
-          
-          const weekEndDate = new Date(weekStartDate);
-          weekEndDate.setDate(weekStartDate.getDate() + 6);
-          
-          const weekKey = `week_${weekIndex}`;
-          
-          if (!weeklyData[weekKey]) {
-            weeklyData[weekKey] = {
-              values: [],
-              startDate: weekStartDate,
-              endDate: weekEndDate
-            };
-          }
-          
-          if (historicalData[timestamp][dataType] !== undefined) {
-            weeklyData[weekKey].values.push(historicalData[timestamp][dataType]);
-          }
+        const date = new Date(parseInt(timestamp) * 1000);
+        
+        // Calculate days since start
+        const daysSinceStart = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+        // Calculate which week this belongs to (0-indexed)
+        const weekIndex = Math.floor(daysSinceStart / 7);
+        
+        // Calculate the start and end of this week
+        const weekStartDate = new Date(startDate);
+        weekStartDate.setDate(startDate.getDate() + (weekIndex * 7));
+        
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekStartDate.getDate() + 6);
+        
+        const weekKey = `week_${weekIndex}`;
+        
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = {
+            values: [],
+            startDate: weekStartDate,
+            endDate: weekEndDate
+          };
+        }
+        
+        if (historicalData[timestamp][dataType] !== undefined) {
+          weeklyData[weekKey].values.push(historicalData[timestamp][dataType]);
         }
       });
       

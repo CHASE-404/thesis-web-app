@@ -4,6 +4,8 @@ import { db, ref, onValue, update, get } from "./firebase";
 import Modal from "./Modal"; // Import Modal Component
 import "./App.css";
 import "./SensorChart.css";
+import { initNotifications, addNotificationClickListener, 
+         removeNotificationListeners, checkReadingsAndNotify } from "./notification";
 
 function App() {
   const [sensorData, setSensorData] = useState({});
@@ -11,16 +13,52 @@ function App() {
   const [showModal, setShowModal] = useState(false);
   const [modalParam, setModalParam] = useState("");
   const [modalValue, setModalValue] = useState("");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  const optimalRanges = {
+    air_temp: { min: 20, max: 30, name: "Air Temperature" },
+    humidity: { min: 60, max: 80, name: "Humidity" },
+    water_temp: { min: 18, max: 26, name: "Water Temperature" },
+    tds: { min: 500, max: 1500, name: "Total Dissolved Solids" },
+    ph: { min: 5.5, max: 6.5, name: "pH Level" },
+  };
+
+  // Initialize notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      const permissionGranted = await initNotifications();
+      setNotificationsEnabled(permissionGranted);
+      
+      if (permissionGranted) {
+        addNotificationClickListener(({ param, value }) => {
+          openModal(param, value);
+        });
+      }
+    };
+    
+    setupNotifications();
+    
+    return () => {
+      removeNotificationListeners();
+    };
+  }, []);
 
   useEffect(() => {
     // Fetch real-time sensor data
     const sensorRef = ref(db, "sensor");
     onValue(sensorRef, (snapshot) => {
       if (snapshot.exists()) {
-        setSensorData((prev) => ({
-          ...prev,
-          ...snapshot.val(),
-        }));
+        const newData = snapshot.val();
+        setSensorData((prev) => {
+          const updatedData = { ...prev, ...newData };
+          
+          // Check readings and send notifications if needed
+          if (notificationsEnabled) {
+            checkReadingsAndNotify(updatedData, optimalRanges);
+          }
+          
+          return updatedData;
+        });
       }
     });
 
@@ -44,7 +82,7 @@ function App() {
         setHistoricalData(fetchedData);
       }
     });
-  }, []);
+  }, [notificationsEnabled]);
 
   const openModal = (param, value) => {
     setModalParam(param);
@@ -79,7 +117,7 @@ function App() {
   };
 
   return (
-    <div className="container">
+    <div className="container">  
       {/* Dashboard container */}
       <div className="dashboard">
         <h1>🌿 Hydroponics Monitoring</h1>
