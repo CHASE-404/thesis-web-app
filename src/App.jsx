@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import SensorChart from "./SensorChat";
-import { db, ref, onValue, update, get } from "./firebase";
-import Modal from "./Modal"; // Import Modal Component
+import { db, ref, onValue, update, get, auth } from "./firebase";
+import Modal from "./Modal"; 
+import Login from "./Login";
 import "./App.css";
 import "./SensorChart.css";
 import { initNotifications, addNotificationClickListener, 
          removeNotificationListeners, checkReadingsAndNotify } from "./notification";
+import { onAuthStateChanged } from "firebase/auth";
 
 function App() {
   const [sensorData, setSensorData] = useState({});
@@ -14,14 +16,26 @@ function App() {
   const [modalParam, setModalParam] = useState("");
   const [modalValue, setModalValue] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const optimalRanges = {
-    air_temp: { min: 20, max: 30, name: "Air Temperature" },
-    humidity: { min: 60, max: 80, name: "Humidity" },
-    water_temp: { min: 18, max: 26, name: "Water Temperature" },
-    tds: { min: 500, max: 1500, name: "Total Dissolved Solids" },
+    air_temp: { min: 22, max: 32, name: "Air Temperature" },
+    humidity: { min: 55, max: 75, name: "Humidity" },
+    water_temp: { min: 18, max: 24, name: "Water Temperature" },
+    tds: { min: 800, max: 1400, name: "Total Dissolved Solids" },
     ph: { min: 5.5, max: 6.5, name: "pH Level" },
   };
+
+  // Check authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   // Initialize notifications
   useEffect(() => {
@@ -44,9 +58,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!user) return; // Only fetch data if user is authenticated
+    
     // Fetch real-time sensor data
     const sensorRef = ref(db, "sensor");
-    onValue(sensorRef, (snapshot) => {
+    const sensorUnsubscribe = onValue(sensorRef, (snapshot) => {
       if (snapshot.exists()) {
         const newData = snapshot.val();
         setSensorData((prev) => {
@@ -64,7 +80,7 @@ function App() {
 
     // Fetch real-time pump state
     const pumpRef = ref(db, "pump_state");
-    onValue(pumpRef, (snapshot) => {
+    const pumpUnsubscribe = onValue(pumpRef, (snapshot) => {
       if (snapshot.exists()) {
         const pumpStateValue = snapshot.val().pump_state;
         setSensorData((prev) => ({
@@ -82,7 +98,13 @@ function App() {
         setHistoricalData(fetchedData);
       }
     });
-  }, [notificationsEnabled]);
+    
+    // Clean up listeners when component unmounts or user logs out
+    return () => {
+      sensorUnsubscribe();
+      pumpUnsubscribe();
+    };
+  }, [notificationsEnabled, user]);
 
   const openModal = (param, value) => {
     setModalParam(param);
@@ -116,11 +138,46 @@ function App() {
       });
   };
 
+  const handleLogout = () => {
+    auth.signOut()
+      .then(() => {
+        console.log("User signed out successfully");
+        // Clear any user-specific data
+        setSensorData({});
+        setHistoricalData([]);
+      })
+      .catch((error) => {
+        console.error("Error signing out: ", error);
+      });
+  };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Login onLogin={() => console.log("User logged in successfully")} />;
+  }
+
   return (
     <div className="container">  
+      {/* User header at the top */}
+      <div className="user-header">
+        <div className="welcome-section">
+          <span className="welcome-text">
+            Welcome, {user.displayName || 'User'}
+          </span>
+        </div>
+        <div className="logout-section">
+          <button onClick={handleLogout} className="logout-button">Logout</button>
+        </div>
+      </div>
+      
       {/* Dashboard container */}
       <div className="dashboard">
-        <h1>🌿 Hydroponics Monitoring</h1>
+        <div className="app-title">
+          <h1>🌿 Hydroponics Monitoring</h1>
+        </div>
         <h2>📡 LoRa Real-time Data</h2>
 
         <div className="cards-container">

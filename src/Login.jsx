@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { auth, db, ref, update } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import React, { useState, useEffect } from 'react';
+import { auth, db } from './firebase';
+import { ref, update, get, remove, set } from 'firebase/database';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, updatePassword } from 'firebase/auth';
 import ResetPin from './ResetPin';
 import './Login.css';
 
@@ -35,15 +36,87 @@ function Login({ onLogin }) {
     e.preventDefault();
     setError('');
     
+    if (pin.length < 4 || pin.length > 6) {
+      setError('PIN must be between 4 and 6 digits');
+      return;
+    }
+    
     try {
       const email = formatPhoneToEmail(phoneNumber);
       
-      // For login, we use the standard email/password auth with PIN as password
-      await signInWithEmailAndPassword(auth, email, pin);
-      onLogin();
+      // Check if there's a pending reset for this phone number
+      const resetsRef = ref(db, 'pin_resets');
+      const resetSnapshot = await get(resetsRef);
+      
+      let resetUserId = null;
+      let resetData = null;
+      
+      if (resetSnapshot.exists()) {
+        resetSnapshot.forEach((childSnapshot) => {
+          const data = childSnapshot.val();
+          if (data.phoneNumber === phoneNumber && !data.applied) {
+            resetUserId = childSnapshot.key;
+            resetData = data;
+          }
+        });
+      }
+      
+      // If there's a pending reset, try to sign in with the new PIN
+      if (resetData && pin === resetData.newPin) {
+        try {
+          // Try to sign in with the new PIN
+          const userCredential = await signInWithEmailAndPassword(auth, email, pin);
+          
+          // If successful, mark the reset as applied and remove it
+          if (resetUserId) {
+            await remove(ref(db, `pin_resets/${resetUserId}`));
+          }
+          
+          onLogin();
+          return;
+        } catch (newPinError) {
+          // If signing in with the new PIN fails, we need to update the auth record
+          console.error('Error signing in with new PIN:', newPinError);
+          
+          // We'll try a different approach below
+        }
+      }
+      
+      // Try to sign in with the provided PIN (could be old or new)
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, pin);
+        
+        // If login is successful and there's a pending reset,
+        // update the password to the new PIN
+        if (resetData && resetUserId) {
+          try {
+            await updatePassword(userCredential.user, resetData.newPin);
+            await remove(ref(db, `pin_resets/${resetUserId}`));
+            alert('Your PIN has been updated successfully! Please use your new PIN next time.');
+          } catch (updateError) {
+            console.error('Error updating PIN:', updateError);
+          }
+        }
+        
+        onLogin();
+      } catch (signInError) {
+        // If regular sign-in fails and there's a pending reset, we need to handle it differently
+        if (resetData && resetUserId) {
+          setError('Please use your new PIN to log in. If you\'re having trouble, please contact support.');
+        } else {
+          // Normal error handling
+          if (signInError.code === 'auth/user-not-found') {
+            setError('No account found with this phone number. Please sign up first.');
+          } else if (signInError.code === 'auth/wrong-password') {
+            setError('Incorrect PIN. Please try again.');
+          } else {
+            setError('Login failed. Please check your phone number and PIN.');
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error signing in:', error);
-      setError('Login failed. Please check your phone number and PIN.');
+      console.error('Error in login process:', error);
+      setError('An unexpected error occurred. Please try again later.');
     }
   };
 
@@ -53,6 +126,11 @@ function Login({ onLogin }) {
     
     if (!userName) {
       setError('Please enter your name');
+      return;
+    }
+    
+    if (pin.length < 4 || pin.length > 6) {
+      setError('PIN must be between 4 and 6 digits');
       return;
     }
     
@@ -78,13 +156,20 @@ function Login({ onLogin }) {
       onLogin();
     } catch (error) {
       console.error('Error signing up:', error);
-      setError('Sign up failed. This phone number might already be registered.');
+      if (error.code === 'auth/email-already-in-use') {
+        setError('This phone number is already registered. Please login instead.');
+      } else {
+        setError('Sign up failed. Please try again with a different phone number.');
+      }
     }
   };
 
   const toggleAuthMode = () => {
     setIsNewUser(!isNewUser);
     setError('');
+    setPhoneNumber('');
+    setPin('');
+    setUserName('');
   };
 
   if (showResetPin) {
@@ -124,7 +209,7 @@ function Login({ onLogin }) {
                 required
               />
               <small className="phone-hint">
-                Enter your number with or without the leading zero
+                This will be used to access your account
               </small>
             </div>
             <div className="form-group">
@@ -144,7 +229,7 @@ function Login({ onLogin }) {
               </small>
             </div>
             {error && <p className="error-message">{error}</p>}
-            <button type="submit" className="login-button">Complete Sign Up</button>
+            <button type="submit" className="login-button">Create Account</button>
             
             <p className="auth-toggle">
               Already have an account?
@@ -168,6 +253,9 @@ function Login({ onLogin }) {
                 placeholder="09XXXXXXXXX or 639XXXXXXXX"
                 required
               />
+              <small className="phone-hint">
+                Enter the phone number you registered with
+              </small>
             </div>
             <div className="form-group">
               <label>PIN Code</label>
@@ -193,7 +281,7 @@ function Login({ onLogin }) {
                   className="toggle-button" 
                   onClick={toggleAuthMode}
                 >
-                  Sign Up
+                  Create Account
                 </button>
               </p>
               <p className="forgot-pin">

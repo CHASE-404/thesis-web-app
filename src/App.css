@@ -17,7 +17,54 @@ body {
   flex-direction: column;
   align-items: center;
   height: 100vh;
-  padding: 10px;
+  padding: 0;
+}
+
+/* User header styling */
+.user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.welcome-section {
+  display: flex;
+  align-items: center;
+}
+
+.welcome-text {
+  font-size: 0.9rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.logout-section {
+  display: flex;
+  align-items: center;
+}
+
+.logout-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #c0392b;
+}
+
+.app-title {
+  text-align: center;
+  margin: 15px 0;
 }
 
 /* Dashboard Styling */
@@ -198,4 +245,14 @@ h2 {
 
 .close-button {
   margin-top: 15px;
+}
+
+/* Loading indicator */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: #2c3e50;
 }

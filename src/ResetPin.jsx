@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { auth, db, ref, update } from './firebase';
-import { sendPasswordResetEmail, updatePassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from './firebase';
+import { ref, update, get, set } from 'firebase/database';
+import { signInWithEmailAndPassword, updatePassword } from 'firebase/auth';
 import './ResetPin.css';
 
 function ResetPin({ onBack, onComplete }) {
@@ -11,6 +12,7 @@ function ResetPin({ onBack, onComplete }) {
   const [step, setStep] = useState('phone'); // 'phone', 'verification', or 'newPin'
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [simulatedCode, setSimulatedCode] = useState('');
 
   // Format phone number to email format for Firebase Auth
   const formatPhoneToEmail = (number) => {
@@ -39,10 +41,33 @@ function ResetPin({ onBack, onComplete }) {
     try {
       const email = formatPhoneToEmail(phoneNumber);
       
-      // Send password reset email (in a real app, this would send an SMS)
-      await sendPasswordResetEmail(auth, email);
+      // Check if user exists in Firebase
+      const userRef = ref(db, 'users');
+      const snapshot = await get(userRef);
+      let userExists = false;
       
-      setMessage('Verification code sent! Check your phone for the code.');
+      if (snapshot.exists()) {
+        snapshot.forEach((childSnapshot) => {
+          const userData = childSnapshot.val();
+          if (userData.phoneNumber === phoneNumber) {
+            userExists = true;
+          }
+        });
+      }
+      
+      if (!userExists) {
+        setError('No account found with this phone number.');
+        return;
+      }
+      
+      // Generate a random 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setSimulatedCode(code);
+      
+      console.log('Verification code:', code);
+      
+      // Display the code in the UI for testing purposes
+      setMessage(`Verification code sent! use this code: ${code}`);
       setStep('verification');
     } catch (error) {
       console.error('Error sending verification code:', error);
@@ -54,16 +79,20 @@ function ResetPin({ onBack, onComplete }) {
     e.preventDefault();
     setError('');
     
-    // In a real implementation, you would verify the code here
-    // For this demo, we'll just proceed to the next step
-    // In production, you would need to implement a custom verification system
-    
-    setStep('newPin');
+    // For demo purposes, we'll accept any code
+    // In a real app, you would verify against the code sent via SMS
+    if (verificationCode === simulatedCode) {
+      setMessage('Phone number verified successfully!');
+      setStep('newPin');
+    } else {
+      setError('Invalid verification code. Please try again.');
+    }
   };
 
   const handleUpdatePin = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     
     if (newPin !== confirmPin) {
       setError('PINs do not match. Please try again.');
@@ -76,10 +105,39 @@ function ResetPin({ onBack, onComplete }) {
     }
     
     try {
-      // In a real implementation, you would use the verification code to reset the password
-      // For this demo, we'll simulate a successful PIN update
+      const email = formatPhoneToEmail(phoneNumber);
+  
+      // Find the user in the database to confirm they exist
+      const userRef = ref(db, 'users');
+      const snapshot = await get(userRef);
+  
+      let userId = null;
+  
+      if (snapshot.exists()) {
+        snapshot.forEach((childSnapshot) => {
+          const userData = childSnapshot.val();
+          if (userData.phoneNumber === phoneNumber) {
+            userId = childSnapshot.key;
+          }
+        });
+      }
+  
+      if (!userId) {
+        setError('User not found. Please try again.');
+        return;
+      }
       
-      setMessage('PIN updated successfully! You can now log in with your new PIN.');
+      // First, store the reset information in the database
+      const resetRef = ref(db, `pin_resets/${userId}`);
+      await set(resetRef, {
+        newPin: newPin,
+        phoneNumber: phoneNumber,
+        timestamp: new Date().toISOString(),
+        applied: false
+      });
+
+      // For this demo, we'll tell the user to use their new PIN
+      setMessage('PIN reset successful! You can now log in with your new PIN.');
       
       // After a short delay, redirect to login
       setTimeout(() => {
@@ -95,7 +153,10 @@ function ResetPin({ onBack, onComplete }) {
     <div className="reset-container">
       <div className="reset-card">
         <h2>🌿 Hydroponics Monitoring</h2>
-        <h3>Reset Your PIN</h3>
+        <h3>Forgot Your PIN?</h3>
+        <p className="reset-description">
+          Enter your phone number to receive a verification code via SMS.
+        </p>
         
         {step === 'phone' && (
           <form onSubmit={handleSendCode}>
@@ -109,7 +170,7 @@ function ResetPin({ onBack, onComplete }) {
                 required
               />
               <small className="phone-hint">
-                Enter the phone number associated with your account
+                Enter the phone number you used to register
               </small>
             </div>
             {error && <p className="error-message">{error}</p>}
@@ -129,9 +190,12 @@ function ResetPin({ onBack, onComplete }) {
                 type="text"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                placeholder="Enter the code sent to your phone"
+                placeholder="Enter the code from SMS"
                 required
               />
+              <small className="phone-hint">
+                Enter the 6-digit code sent to your phone
+              </small>
             </div>
             {error && <p className="error-message">{error}</p>}
             {message && <p className="success-message">{message}</p>}
