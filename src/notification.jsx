@@ -92,7 +92,7 @@ const sendOutOfRangeNotification = async (paramName, value, paramKey, min, max) 
   }
 };
 
-// Send notification for sensor error (zero values)
+// Send notification for zero value sensor error
 const sendSensorErrorNotification = async (paramName, paramKey) => {
   // Prevent duplicate notifications within 5 minutes
   const now = Date.now();
